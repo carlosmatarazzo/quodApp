@@ -62,6 +62,17 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation("io.coil-kt:coil-compose:2.0.0")
+    //implementation(libs.androidx.camera.core)
+    implementation(libs.firebase.crashlytics.buildtools)
+    //implementation(libs.androidx.camera.lifecycle)
+    //implementation(libs.androidx.camera.view)
+
+    val camerax_version = "1.3.0" // ou a versão mais recente
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+    implementation("androidx.camera:camera-extensions:${camerax_version}")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
