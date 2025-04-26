@@ -66,8 +66,10 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
     implementation("androidx.compose.ui:ui-viewbinding:1.5.0")
-
     implementation("io.coil-kt:coil-compose:2.0.0")
+
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
