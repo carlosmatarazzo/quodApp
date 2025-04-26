@@ -28,6 +28,47 @@ import androidx.camera.core.Preview
 import androidx.camera.view.PreviewView
 import androidx.camera.core.ImageCapture
 import androidx.compose.ui.draw.clip
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+@Serializable
+data class Dispositivo(
+    val fabricante: String = "Apple",
+    val modelo: String = "iPhone 13",
+    @SerialName("sistemaOperacional") val sistemaOperacional: String = "iOS 12",
+    @SerialName("dataDispositivo") val dataDispositivo: String = "2025-04-24T15:24:49Z",
+    val latitude: Double = -23.1000,
+    val longitude: Double = -46.7500,
+    @SerialName("ipOrigem") val ipOrigem: String = "192.168.1.10"
+)
+
+@Serializable
+data class BiometriaRequest(
+    val tipoBiometria: String = "facial",
+    val dispositivo: Dispositivo = Dispositivo(),
+    val nomeImagem: String = "teste.jpg",
+    val imagemBase64: String
+)
+
+@Serializable
+data class BiometriaResponse(
+    val status: String,
+    val tipoBiometria: String? = null,
+    val id: String? = null,
+    val dataCaptura: String? = null,
+    val dispositivo: Dispositivo? = null,
+    val imagemBase64: String? = null
+)
 
 @Composable
 fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
@@ -55,6 +96,7 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
     var cameraStatus by remember { mutableStateOf("Câmera") }
     var message by remember { mutableStateOf("") }
     var isInvalid by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val colorScheme = MaterialTheme.colorScheme
     var messageColor by remember(colorScheme) {
@@ -62,6 +104,19 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
     }
     val scrollState = rememberScrollState()
     val shouldShowCameraBox = previewView != null || imageBitmap != null
+
+    val httpClient = remember {
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(Json {
+                    prettyPrint = true
+                    isLenient = true
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                })
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -117,37 +172,100 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            Button(onClick = {
-                when (cameraStatus) {
-                    "Câmera" -> {
-                        startCamera(context, lifecycleOwner, { preview = it }, { previewView = it }, { imageCapture = it })
-                        imageBitmap = null
-                        cameraStatus = "Capturar"
-                        message = ""
-                    }
-                    "Capturar" -> {
-                        capturePhoto(context, imageCapture, { imageBitmap = it })
-                        previewView = null
-                        cameraStatus = "Validar"
-                    }
-                    "Validar" -> {
-                        if (isInvalid) {
-                            message = "Imagem Inválida"
-                            messageColor = colorScheme.error
-                        } else {
-                            message = "Imagem Válida"
-                            messageColor = colorScheme.primary
+            Button(
+                onClick = {
+                    when (cameraStatus) {
+                        "Câmera" -> {
+                            startCamera(context, lifecycleOwner, { preview = it }, { previewView = it }, { imageCapture = it })
+                            imageBitmap = null
+                            cameraStatus = "Capturar"
+                            message = ""
                         }
+                        "Capturar" -> {
+                            capturePhoto(context, imageCapture, { imageBitmap = it })
+                            previewView = null
+                            cameraStatus = "Validar"
+                        }
+                        "Validar" -> {
+                            imageBitmap?.let { bitmap ->
+                                val base64Image = bitmap.toBase64()
+                                //val requestPayload = BiometriaRequest(imagemBase64 = base64Image)
 
-                        // TODO: Enviar imagem em formato Base64 para API
-                        // val base64Image = imageBitmap?.toBase64()
-                        cameraStatus = "Câmera"
-                        imageBitmap = null
-                        previewView = null
+                                // *** Adicione estas duas linhas aqui ***
+                                //val requestPayload: BiometriaRequest = BiometriaRequest(imagemBase64 = base64Image)
+                                val requestPayload = BiometriaRequest(
+                                    tipoBiometria = "facial",
+                                    dispositivo = Dispositivo(
+                                        fabricante = "samsung",
+                                        modelo = "Galaxy S23+",
+                                        sistemaOperacional = "S916BXXS8CYBE",
+                                        dataDispositivo = "2025-04-25T15:24:49Z",
+                                        latitude = -23.1000, // Mantenha ou ajuste conforme a API
+                                        longitude = -46.7500, // Mantenha ou ajuste conforme a API
+                                        ipOrigem = "192.168.1.10"
+                                    ),
+                                    nomeImagem = "teste.jpg",
+                                    imagemBase64 = base64Image
+                                )
+                                //val jsonPayload: String = Json.encodeToString(BiometriaRequest.serializer(), requestPayload)
+                                //Log.d("API_REQUEST", "Payload de envio: $jsonPayload")
+                                Log.d("API_REQUEST_OBJECT", "Payload Object: $requestPayload")
+                                val jsonPayload: String = Json.encodeToString(BiometriaRequest.serializer(), requestPayload)
+                                Log.d("API_REQUEST_JSON", "Payload JSON: $jsonPayload")
+
+                                lifecycleOwner.lifecycleScope.launch {
+                                    isLoading = true
+                                    try {
+                                        val response: BiometriaResponse = httpClient.post("http://192.168.56.1:8080/api/biometria/receber") {
+                                            contentType(ContentType.Application.Json)
+                                            setBody(requestPayload)
+                                        }.body()
+
+                                        val statusLower = response.status.lowercase()
+
+                                        when {
+                                            statusLower.startsWith("inválido") -> {
+                                                message = "Status: Fraude"
+                                                messageColor = colorScheme.error
+                                                Log.d("API_SUCCESS", "Status de fraude detectado: ${response.status}")
+                                            }
+                                            statusLower.startsWith("válido") -> {
+                                                message = "Status: Sucesso"
+                                                messageColor = colorScheme.primary
+                                                Log.d("API_SUCCESS", "Status de sucesso detectado: ${response.status}")
+                                            }
+                                            else -> {
+                                                message = "Status desconhecido: ${response.status}"
+                                                messageColor = colorScheme.onBackground
+                                                Log.w("API_WARNING", "Status inesperado recebido: ${response.status}")
+                                            }
+                                        }
+
+                                    } catch (e: Exception) {
+                                        message = "Erro inesperado ao chamar a API: ${e.localizedMessage}"
+                                        messageColor = colorScheme.error
+                                        Log.e("API_ERROR", "Erro inesperado na chamada da API", e)
+                                    } finally {
+                                        isLoading = false
+                                        cameraStatus = "Câmera"
+                                        imageBitmap = null
+                                        previewView = null
+                                    }
+                                }
+                            } ?: run {
+                                message = "Nenhuma imagem capturada para validar."
+                                messageColor = colorScheme.error
+                            }
+
+                        }
                     }
-                }
-            }) {
+                },
+                enabled = !isLoading
+            ) {
                 Text(cameraStatus)
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                }
             }
 
             Button(onClick = {
