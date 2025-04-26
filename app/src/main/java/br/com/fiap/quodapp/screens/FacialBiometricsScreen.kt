@@ -2,6 +2,7 @@ package br.com.fiap.quodapp.screens
 
 import android.Manifest
 import android.graphics.Bitmap
+import android.os.Build
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
@@ -40,22 +41,31 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+
+fun getCurrentUtcDateTimeIso(): String {
+    return DateTimeFormatter.ISO_INSTANT
+        .withZone(ZoneOffset.UTC)
+        .format(Instant.now())
+}
 
 @Serializable
 data class Dispositivo(
-    val fabricante: String = "Apple",
-    val modelo: String = "iPhone 13",
-    @SerialName("sistemaOperacional") val sistemaOperacional: String = "iOS 12",
-    @SerialName("dataDispositivo") val dataDispositivo: String = "2025-04-24T15:24:49Z",
-    val latitude: Double = -23.1000,
-    val longitude: Double = -46.7500,
-    @SerialName("ipOrigem") val ipOrigem: String = "192.168.1.10"
+    val fabricante: String,
+    val modelo: String,
+    val sistemaOperacional: String,
+    val dataDispositivo: String,
+    val latitude: Double,
+    val longitude: Double,
+    @SerialName("ipOrigem") val ipOrigem: String
 )
 
 @Serializable
 data class BiometriaRequest(
     val tipoBiometria: String = "facial",
-    val dispositivo: Dispositivo = Dispositivo(),
+    val dispositivo: Dispositivo,
     val nomeImagem: String = "teste.jpg",
     val imagemBase64: String
 )
@@ -196,12 +206,12 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
                                 val requestPayload = BiometriaRequest(
                                     tipoBiometria = "facial",
                                     dispositivo = Dispositivo(
-                                        fabricante = "samsung",
-                                        modelo = "Galaxy S23+",
-                                        sistemaOperacional = "S916BXXS8CYBE",
-                                        dataDispositivo = "2025-04-25T15:24:49Z",
-                                        latitude = -23.1000, // Mantenha ou ajuste conforme a API
-                                        longitude = -46.7500, // Mantenha ou ajuste conforme a API
+                                        fabricante = Build.MANUFACTURER,
+                                        modelo = Build.MODEL,
+                                        sistemaOperacional = Build.VERSION.RELEASE,
+                                        dataDispositivo = getCurrentUtcDateTimeIso(),
+                                        latitude = -23.1000,
+                                        longitude = -46.7500,
                                         ipOrigem = "192.168.1.10"
                                     ),
                                     nomeImagem = "teste.jpg",
