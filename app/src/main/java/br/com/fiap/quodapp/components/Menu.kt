@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.sp
 fun Menu(navigateTo: (String) -> Unit) {
     val menuItems = mapOf(
         "Início" to "main",
-        "Reconhecimento Facial" to "biometria_facial",
+        "Biometria Facial" to "biometria_facial",
         "Biometria Digital" to "biometria_digital",
         "Documento" to "analise_documento",
         "Chip SIM" to "sim_swap",

@@ -1,4 +1,4 @@
-package br.com.fiap.quodapp.components // Ajuste o pacote conforme necessário
+package br.com.fiap.quodapp.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.padding

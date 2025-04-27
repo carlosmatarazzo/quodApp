@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import br.com.fiap.quodapp.components.Menu
 import br.com.fiap.quodapp.components.QuodLogo
 import br.com.fiap.quodapp.screens.camera.capturePhoto
@@ -38,29 +37,9 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-
-fun getCurrentUtcDateTimeIso(): String {
-    return DateTimeFormatter.ISO_INSTANT
-        .withZone(ZoneOffset.UTC)
-        .format(Instant.now())
-}
-
-@Serializable
-data class Dispositivo(
-    val fabricante: String,
-    val modelo: String,
-    val sistemaOperacional: String,
-    val dataDispositivo: String,
-    val latitude: Double,
-    val longitude: Double,
-    @SerialName("ipOrigem") val ipOrigem: String
-)
+import br.com.fiap.quodapp.screens.utils.getCurrentUtcDateTimeIso
 
 @Serializable
 data class BiometriaRequest(
@@ -68,16 +47,6 @@ data class BiometriaRequest(
     val dispositivo: Dispositivo,
     val nomeImagem: String = "teste.jpg",
     val imagemBase64: String
-)
-
-@Serializable
-data class BiometriaResponse(
-    val status: String,
-    val tipoBiometria: String? = null,
-    val id: String? = null,
-    val dataCaptura: String? = null,
-    val dispositivo: Dispositivo? = null,
-    val imagemBase64: String? = null
 )
 
 @Composable
@@ -138,7 +107,7 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
         QuodLogo()
 
         Text(
-            text = "Reconhecimento Facial",
+            text = "Biometria Facial",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -199,10 +168,6 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
                         "Validar" -> {
                             imageBitmap?.let { bitmap ->
                                 val base64Image = bitmap.toBase64()
-                                //val requestPayload = BiometriaRequest(imagemBase64 = base64Image)
-
-                                // *** Adicione estas duas linhas aqui ***
-                                //val requestPayload: BiometriaRequest = BiometriaRequest(imagemBase64 = base64Image)
                                 val requestPayload = BiometriaRequest(
                                     tipoBiometria = "facial",
                                     dispositivo = Dispositivo(
@@ -217,8 +182,6 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
                                     nomeImagem = "teste.jpg",
                                     imagemBase64 = base64Image
                                 )
-                                //val jsonPayload: String = Json.encodeToString(BiometriaRequest.serializer(), requestPayload)
-                                //Log.d("API_REQUEST", "Payload de envio: $jsonPayload")
                                 Log.d("API_REQUEST_OBJECT", "Payload Object: $requestPayload")
                                 val jsonPayload: String = Json.encodeToString(BiometriaRequest.serializer(), requestPayload)
                                 Log.d("API_REQUEST_JSON", "Payload JSON: $jsonPayload")
@@ -284,17 +247,6 @@ fun FacialBiometricsScreen(navigateTo: (String) -> Unit) {
             }) {
                 Text("Avançar")
             }
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            Checkbox(
-                checked = isInvalid,
-                onCheckedChange = { isInvalid = it }
-            )
-            Text("Invalidar")
         }
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
